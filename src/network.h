@@ -7,7 +7,7 @@
 #include "./loss.h"
 #include "./optimizer.h"
 #include "./utils.h"
-
+#include <fstream>
 class Network {
  private:
   std::vector<Layer*> layers;  // layer pointers
@@ -42,6 +42,8 @@ class Network {
   /// Debugging tool to check parameter gradients
   void check_gradient(const Matrix& input, const Matrix& target, int n_points,
                       int seed = -1);
+  void save_parameters(std::string filename);
+  void load_parameters(std::string filename);
 };
 
 #endif  // SRC_NETWORK_H_
