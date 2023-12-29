@@ -11,6 +11,7 @@ add_subdirectory(src)
 # 指定生成目标 
 add_library(gpu_conv_lib STATIC src/layer/gpu-new-forward-basic.cu src/layer/gpu-new-forward.h src/layer/gpu-utils.cu src/layer/gpu-utils.h )
 
+find_package(CUDA REQUIRED)
 include_directories(${CUDA_INCLUDE_DIRS})
 
 add_executable(demo ${DIR_SRCS})
