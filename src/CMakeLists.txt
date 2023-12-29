@@ -7,3 +7,9 @@ aux_source_directory(./optimizer DIR_LIB_SRCS)
 # 生成链接库
 add_library (MiniDNNLib ${DIR_LIB_SRCS})
 
+
+find_package(CUDA REQUIRED)
+include_directories(${CUDA_INCLUDE_DIRS})
+
+
+
