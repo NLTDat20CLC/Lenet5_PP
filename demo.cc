@@ -23,7 +23,8 @@
 #include "src/network.h"
 #include "src/optimizer.h"
 #include "src/optimizer/sgd.h"
-
+#include "src/layer/gpu-utils.h"
+#include "src/layer/conv_cust.h"
 
 int main() {
   // data
@@ -83,20 +84,64 @@ int main() {
       dnn.forward(x_batch);
       dnn.backward(x_batch, target_batch);
       // display
-      if (ith_batch % 50 == 0) {
-        std::cout << ith_batch << "-th batch, loss: " << dnn.get_loss()
-        << std::endl;
-      }
+     // if (ith_batch % 50 == 0) {
+     //   std::cout << ith_batch << "-th batch, loss: " << dnn.get_loss()
+     //   << std::endl;
+    //  }
       // optimize
       dnn.update(opt);
     }
     // test
-    dnn.forward(dataset.test_data);
-    float acc = compute_accuracy(dnn.output(), dataset.test_labels);
-    std::cout << std::endl;
-    std::cout << epoch + 1 << "-th epoch, test acc: " << acc << std::endl;
-    std::cout << std::endl;
+   // dnn.forward(dataset.test_data);
+  //  float acc = compute_accuracy(dnn.output(), dataset.test_labels);
+    //std::cout << std::endl;
+    //std::cout << epoch + 1 << "-th epoch, test acc: " << acc << std::endl;
+   // std::cout << std::endl;
   }
+    GpuTimer timer;
+    timer.Start();
+    dnn.forward(dataset.test_data);
+    timer.Stop();
+    float acc = compute_accuracy(dnn.output(), dataset.test_labels);
+    float ts = timer.Elapsed();
+    std::cout << "CPU:" << std::endl;
+    std::cout << "Test acc: " << acc << std::endl;
+    std::cout << "Time: " << ts << " ms" << std::endl;
+    dnn.save_parameters("/content/Lenet5_PP/testinput.bin");
+  Network dnn_gpu;
+  Layer* conv1_gpu = new Conv_Custom(1, 28, 28, 6, 5, 5, 1, 2, 2);
+  Layer* pool1_gpu = new MaxPooling(6,28, 28, 2, 2, 2);
+  Layer* conv2_gpu = new Conv_Custom(6,14, 14, 16, 5, 5, 1, 2, 2);
+  Layer* pool2_gpu = new MaxPooling(16, 10, 10, 2, 2, 2);
+  Layer* fc3_gpu = new FullyConnected(pool2->output_dim(), 120);
+  Layer* fc4_gpu = new FullyConnected(120, 84);
+  Layer* fc5_gpu = new FullyConnected(84, 10);
+  Layer* relu1_gpu = new ReLU;
+  Layer* relu2_gpu = new ReLU;
+  Layer* relu3_gpu = new ReLU;
+  Layer* relu4_gpu = new ReLU;
+  Layer* softmax_gpu = new Softmax;
+  dnn_gpu.add_layer(conv1_gpu);
+  dnn_gpu.add_layer(relu1_gpu);
+  dnn_gpu.add_layer(pool1_gpu);
+  dnn_gpu.add_layer(conv2_gpu);
+  dnn_gpu.add_layer(relu2_gpu);
+  dnn_gpu.add_layer(pool2_gpu);
+  dnn_gpu.add_layer(fc3_gpu);
+  dnn_gpu.add_layer(relu3_gpu);
+  dnn_gpu.add_layer(fc4_gpu);
+  dnn_gpu.add_layer(relu4_gpu);
+  dnn_gpu.add_layer(fc5_gpu);
+  dnn_gpu.add_layer(softmax_gpu);
+  dnn_gpu.load_parameters("/content/Lenet5_PP/testinput.bin");
+   timer.Start();
+    dnn_gpu.forward(dataset.test_data);
+    timer.Stop();
+    acc = compute_accuracy(dnn_gpu.output(), dataset.test_labels);
+    ts = timer.Elapsed();
+    std::cout << "GPU:" <<std::endl;
+    std::cout << "Test acc: " << acc << std::endl;
+    std::cout << "Time: " << ts << " ms" << std::endl;
   return 0;
 }
 
