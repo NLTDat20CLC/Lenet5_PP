@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 
-project (myprojec)
+project (myproject)
 enable_language(CUDA)
 include_directories ("${PROJECT_SOURCE_DIR}/third_party/eigen")
 # 查找当前目录下的所有源文件
