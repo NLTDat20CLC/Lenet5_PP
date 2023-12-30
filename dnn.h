@@ -19,7 +19,8 @@
 #include "src/optimizer/sgd.h"
 #include "src/layer/gpu-utils.h"
 #include "src/layer/conv_gpu.h"
+#include "src/layer/conv_gpu_op.h"
 
 Network createlenet5_CPU();
 Network createlenet5_GPU();
-Network createlenet5_GPU_op();
+Network createlenet5_GPU_OP();

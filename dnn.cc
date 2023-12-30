@@ -1,5 +1,6 @@
 #include"dnn.h"
 
+
 Network createlenet5_CPU()
 {
 Network dnn;
@@ -40,6 +41,38 @@ Network createlenet5_GPU()
   Layer* conv1_gpu = new Conv_GPU(1, 28, 28, 6, 5, 5, 1, 2, 2);
   Layer* pool1_gpu = new MaxPooling(6,28, 28, 2, 2, 2);
   Layer* conv2_gpu = new Conv_GPU(6,14, 14, 16, 5, 5, 1, 2, 2);
+  Layer* pool2_gpu = new MaxPooling(16, 10, 10, 2, 2, 2);
+  Layer* fc3_gpu = new FullyConnected(pool2_gpu->output_dim(), 120);
+  Layer* fc4_gpu = new FullyConnected(120, 84);
+  Layer* fc5_gpu = new FullyConnected(84, 10);
+  Layer* relu1_gpu = new ReLU;
+  Layer* relu2_gpu = new ReLU;
+  Layer* relu3_gpu = new ReLU;
+  Layer* relu4_gpu = new ReLU;
+  Layer* softmax_gpu = new Softmax;
+  dnn_gpu.add_layer(conv1_gpu);
+  dnn_gpu.add_layer(relu1_gpu);
+  dnn_gpu.add_layer(pool1_gpu);
+  dnn_gpu.add_layer(conv2_gpu);
+  dnn_gpu.add_layer(relu2_gpu);
+  dnn_gpu.add_layer(pool2_gpu);
+  dnn_gpu.add_layer(fc3_gpu);
+  dnn_gpu.add_layer(relu3_gpu);
+  dnn_gpu.add_layer(fc4_gpu);
+  dnn_gpu.add_layer(relu4_gpu);
+  dnn_gpu.add_layer(fc5_gpu);
+  dnn_gpu.add_layer(softmax_gpu);
+  Loss* loss = new CrossEntropy;
+  dnn_gpu.add_loss(loss);
+  return dnn_gpu;
+}
+
+Network createlenet5_GPU_OP()
+{
+  Network dnn_gpu;
+  Layer* conv1_gpu = new Conv_GPU_OP(1, 28, 28, 6, 5, 5, 1, 2, 2);
+  Layer* pool1_gpu = new MaxPooling(6,28, 28, 2, 2, 2);
+  Layer* conv2_gpu = new Conv_GPU_OP(6,14, 14, 16, 5, 5, 1, 2, 2);
   Layer* pool2_gpu = new MaxPooling(16, 10, 10, 2, 2, 2);
   Layer* fc3_gpu = new FullyConnected(pool2_gpu->output_dim(), 120);
   Layer* fc4_gpu = new FullyConnected(120, 84);

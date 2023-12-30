@@ -4,27 +4,6 @@
  * Details in https://github.com/iamhankai/mini-dnn-cpp
  * Copyright 2018 Kai Han
  */
-#include <Eigen/Dense>
-#include <algorithm>
-#include <iostream>
-
-#include "src/layer.h"
-#include "src/layer/conv.h"
-#include "src/layer/fully_connected.h"
-#include "src/layer/ave_pooling.h"
-#include "src/layer/max_pooling.h"
-#include "src/layer/relu.h"
-#include "src/layer/sigmoid.h"
-#include "src/layer/softmax.h"
-#include "src/loss.h"
-#include "src/loss/mse_loss.h"
-#include "src/loss/cross_entropy_loss.h"
-#include "src/mnist.h"
-#include "src/network.h"
-#include "src/optimizer.h"
-#include "src/optimizer/sgd.h"
-#include "src/layer/gpu-utils.h"
-#include "src/layer/conv_gpu.h"
 #include "dnn.h"
 
 int main() {
@@ -90,6 +69,18 @@ int main() {
     acc = compute_accuracy(dnn_gpu.output(), dataset.test_labels);
     ts = timer.Elapsed();
     std::cout << "GPU:" <<std::endl;
+    std::cout << "Test acc: " << acc << std::endl;
+    std::cout << "Time: " << ts << " ms" << std::endl;
+
+    //dnngpuoptimize
+    Network dnn_gpu_op = createlenet5_GPU_OP();
+    dnn_gpu_op.load_parameters("/content/Lenet5_PP/testinput.bin");
+    timer.Start();
+    dnn_gpu_op.forward(dataset.test_data);
+    timer.Stop();
+    acc = compute_accuracy(dnn_gpu_op.output(), dataset.test_labels);
+    ts = timer.Elapsed();
+    std::cout << "GPU Optimize:" <<std::endl;
     std::cout << "Test acc: " << acc << std::endl;
     std::cout << "Time: " << ts << " ms" << std::endl;
   return 0;
