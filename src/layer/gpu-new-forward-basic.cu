@@ -116,4 +116,3 @@ __host__ void GPUInterface::conv_forward_gpu_epilog(float *host_y, float *device
     cudaFree(device_k);
 }
 
-}
