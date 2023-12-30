@@ -37,9 +37,9 @@ Network dnn;
 Network createlenet5_GPU()
 {
   Network dnn_gpu;
-  Layer* conv1_gpu = new Conv_Custom(1, 28, 28, 6, 5, 5, 1, 2, 2);
+  Layer* conv1_gpu = new Conv_GPU(1, 28, 28, 6, 5, 5, 1, 2, 2);
   Layer* pool1_gpu = new MaxPooling(6,28, 28, 2, 2, 2);
-  Layer* conv2_gpu = new Conv_Custom(6,14, 14, 16, 5, 5, 1, 2, 2);
+  Layer* conv2_gpu = new Conv_GPU(6,14, 14, 16, 5, 5, 1, 2, 2);
   Layer* pool2_gpu = new MaxPooling(16, 10, 10, 2, 2, 2);
   Layer* fc3_gpu = new FullyConnected(pool2_gpu->output_dim(), 120);
   Layer* fc4_gpu = new FullyConnected(120, 84);
