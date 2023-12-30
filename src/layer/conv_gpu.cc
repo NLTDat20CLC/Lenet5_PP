@@ -35,9 +35,6 @@ void Conv_GPU::forward(const Matrix& bottom) {
   float *x_d;
   float *y_d;
   float *k_d;
-
-  // Launch marker kernel to aid with student function timing
-  gpuUtils.insert_pre_barrier_kernel();
   
   // Data transfer CPU to GPU
   gpuInterface.conv_forward_gpu_prolog(y, x, k, &y_d, &x_d, &k_d, B, M, C, height_in, width_in, K);
