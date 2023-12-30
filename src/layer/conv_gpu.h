@@ -34,7 +34,6 @@ class Conv_GPU: public Layer {
   std::vector<Matrix> data_cols;
 
   GPUInterface gpuInterface;
-  GPU_Utils gpuUtils;
 
   void init();
 
