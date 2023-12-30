@@ -1,12 +1,12 @@
-#ifndef SRC_LAYER_CONV_GPU_H_
-#define SRC_LAYER_CONV_GPU_H_
+#ifndef SRC_LAYER_CONV_GPU_OP_H_
+#define SRC_LAYER_CONV_GPU_OP_H_
 
 #include <vector>
 #include "../layer.h"
 #include "./gpu-new-forward.h"
 #include <cuda_runtime_api.h>
 
-class Conv_GPU: public Layer {
+class Conv_GPU_OP: public Layer {
  private:
   const int dim_in;
   int dim_out;
@@ -31,12 +31,12 @@ class Conv_GPU: public Layer {
 
   std::vector<Matrix> data_cols;
 
-  GPUInterface gpuInterface;
+  GPUInterface2 gpuInterface;
 
   void init();
 
  public:
-  Conv_GPU(int channel_in, int height_in, int width_in, int channel_out,
+  Conv_GPU_OP(int channel_in, int height_in, int width_in, int channel_out,
        int height_kernel, int width_kernel, int stride = 1, int pad_w = 0,
        int pad_h = 0) :
        dim_in(channel_in * height_in * width_in),
