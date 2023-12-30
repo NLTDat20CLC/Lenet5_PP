@@ -9,7 +9,7 @@ aux_source_directory(. DIR_SRCS)
 # 添加 math 子目录
 add_subdirectory(src)
 # 指定生成目标 
-add_library(gpu_conv_lib STATIC src/layer/gpu-new-forward-basic.cu src/layer/gpu-new-forward.h src/layer/gpu-utils.cu src/layer/gpu-utils.h )
+add_library(gpu_conv_lib STATIC src/layer/gpu-new-forward-basic.cu src/layer/gpu-new-forward.h src/layer/gpu-utils.h src/layer/gpu-new-forward-optimize.cu)
 
 find_package(CUDA REQUIRED)
 include_directories(${CUDA_INCLUDE_DIRS})
