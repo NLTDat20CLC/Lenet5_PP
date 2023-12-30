@@ -73,14 +73,6 @@ __host__ void GPUInterface::conv_forward_gpu_prolog(const float *host_y, const f
     // Copy Mask data to device
     cudaMemcpy(*device_k_ptr, host_k, maskSize, cudaMemcpyHostToDevice);
 
-    // Useful snippet for error checking
-    // cudaError_t error = cudaGetLastError();
-    // if(error != cudaSuccess)
-    // {
-    //     std::cout<<"CUDA error: "<<cudaGetErrorString(error)<<std::endl;
-    //     exit(-1);
-    // }
-
 }
 
 
@@ -124,25 +116,4 @@ __host__ void GPUInterface::conv_forward_gpu_epilog(float *host_y, float *device
     cudaFree(device_k);
 }
 
-
-__host__ void GPUInterface::get_device_properties()
-{
-    int deviceCount;
-    cudaGetDeviceCount(&deviceCount);
-
-    for(int dev = 0; dev < deviceCount; dev++)
-    {
-        cudaDeviceProp deviceProp;
-        cudaGetDeviceProperties(&deviceProp, dev);
-
-        std::cout<<"Device "<<dev<<" name: "<<deviceProp.name<<std::endl;
-        std::cout<<"Computational capabilities: "<<deviceProp.major<<"."<<deviceProp.minor<<std::endl;
-        std::cout<<"Max Global memory size: "<<deviceProp.totalGlobalMem<<std::endl;
-        std::cout<<"Max Constant memory size: "<<deviceProp.totalConstMem<<std::endl;
-        std::cout<<"Max Shared memory size per block: "<<deviceProp.sharedMemPerBlock<<std::endl;
-        std::cout<<"Max threads per block: "<<deviceProp.maxThreadsPerBlock<<std::endl;
-        std::cout<<"Max block dimensions: "<<deviceProp.maxThreadsDim[0]<<" x, "<<deviceProp.maxThreadsDim[1]<<" y, "<<deviceProp.maxThreadsDim[2]<<" z"<<std::endl;
-        std::cout<<"Max grid dimensions: "<<deviceProp.maxGridSize[0]<<" x, "<<deviceProp.maxGridSize[1]<<" y, "<<deviceProp.maxGridSize[2]<<" z"<<std::endl;
-        std::cout<<"Warp Size: "<<deviceProp.warpSize<<std::endl;
-    }
 }
