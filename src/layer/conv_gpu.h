@@ -8,7 +8,7 @@
 #include "./gpu-new-forward.h"
 #include "./gpu-utils.h"
 
-class Conv_Custom: public Layer {
+class Conv_GPU: public Layer {
  private:
   const int dim_in;
   int dim_out;
@@ -39,7 +39,7 @@ class Conv_Custom: public Layer {
   void init();
 
  public:
-  Conv_Custom(int channel_in, int height_in, int width_in, int channel_out,
+  Conv_GPU(int channel_in, int height_in, int width_in, int channel_out,
        int height_kernel, int width_kernel, int stride = 1, int pad_w = 0,
        int pad_h = 0) :
        dim_in(channel_in * height_in * width_in),
