@@ -54,4 +54,4 @@ class Conv_GPU_OP: public Layer {
   void set_parameters(const std::vector<float>& param);
 };
 
-#endif  // SRC_LAYER_CONV_CUST_H_
+#endif  
