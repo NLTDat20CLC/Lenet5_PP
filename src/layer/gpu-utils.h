@@ -48,7 +48,6 @@ struct GpuTimer
     float Elapsed()
     {
         float elapsed;
-        cudaEventSynchronize(stop);
         cudaEventElapsedTime(&elapsed, start, stop);
         return elapsed;
     }
