@@ -10,63 +10,63 @@ __global__ void conv_forward_kernel_op(float *y, const float *x, const float *k,
     const int H_out = H - K + 1;
     const int W_out = W - K + 1;
 
-    int bx = blockIdx.x;
-    int by = blockIdx.y;
-    int tx = threadIdx.x;
-    int ty = threadIdx.y;
+    #define y4d(i3, i2, i1, i0) y[(i3) * (M * H_out * W_out) + (i2) * (H_out * W_out) + (i1) * (W_out) + i0]
+    #define x4d(i3, i2, i1, i0) x[(i3) * (C * H * W) + (i2) * (H * W) + (i1) * (W) + i0]
+    #define k4d(i3, i2, i1, i0) k[(i3) * (C * K * K) + (i2) * (K * K) + (i1) * (K) + i0]
 
     int H_grid = ceil(1.0 * H_out / TILE_WIDTH);
     int W_grid = ceil(1.0 * W_out / TILE_WIDTH);
 
-    float accum = 0.0f;
 
-    // Shared memory for tiles
+    int b = blockIdx.x;           // batch number
+    int m = blockIdx.y;           // output feature
+    int tile_row = blockIdx.z / W_grid;  // tile row
+    int tile_col = blockIdx.z % W_grid;  // tile column
+
+    int h_start = tile_row * TILE_WIDTH;
+    int w_start = tile_col * TILE_WIDTH;
+
+    int h = h_start + threadIdx.y; // row of the image matrix within the tile
+    int w = w_start + threadIdx.x; // col of the image matrix within the tile
+
     __shared__ float shared_x[TILE_WIDTH][TILE_WIDTH];
     __shared__ float shared_k[TILE_WIDTH][TILE_WIDTH];
 
-    // Loop over the input channels with loop unrolling
-    for (int c = 0; c < C; c += UNROLL_FACTOR * TILE_WIDTH)
-    {
-        // Load tiles into shared memory with loop unrolling
-        #pragma unroll
-        for (int i = 0; i < UNROLL_FACTOR * TILE_WIDTH; ++i)
-        {
-            int idx = c + i;
-            if (idx < C)
-            {
-                shared_x[ty][i] = x[(bx * C + idx + ty) * (H * W) + (by * TILE_WIDTH + i)];
-            }
-            else
-            {
-                shared_x[ty][i] = 0.0f;  // Padding for out-of-bounds access
-            }
+    float accum[UNROLL_FACTOR] = {0.0f};
 
-            shared_k[ty][i] = k[(by * M + idx + ty) * (K) + i];
-        }
+    for (int c = 0; c < C; c++)
+    {
+        // Load tile from global memory to shared memory
+        shared_x[threadIdx.y][threadIdx.x] = x4d(b, c, h, w);
+        shared_k[threadIdx.y][threadIdx.x] = k4d(m, c, h - h_start, w - w_start);
 
         __syncthreads();
 
-        // Compute tile multiplication with loop unrolling
-        #pragma unroll
-        for (int i = 0; i < UNROLL_FACTOR * TILE_WIDTH; ++i)
+        // Unrolled loop for computing partial result
+#pragma unroll
+        for (int p = 0; p < TILE_WIDTH; p += UNROLL_FACTOR)
         {
-            int idx = c + i;
-            if (idx < C)
+#pragma unroll
+            for (int q = 0; q < UNROLL_FACTOR; ++q)
             {
-                accum += shared_x[ty][i] * shared_k[i][tx];
+                accum[q] += shared_x[threadIdx.y][p + q] * shared_k[p + q][threadIdx.x];
             }
         }
 
         __syncthreads();
     }
-
-    int h = by * TILE_WIDTH + ty;
-    int w = bx * TILE_WIDTH + tx;
 
     if (h < H_out && w < W_out)
     {
-        y[(bx * M * H_out * W_out) + (by * H_out * W_out) + h * W_out + w] = accum;
+#pragma unroll
+        for (int q = 0; q < UNROLL_FACTOR; ++q)
+        {
+            y4d(b, m, h, w) += accum[q];
+        }
     }
+    #undef y4d
+    #undef x4d
+    #undef k4d
 }
 	
 __host__ void GPUInterface2::conv_forward_gpu_prolog(const float *host_y, const float *host_x, const float *host_k, float **device_y_ptr, float **device_x_ptr, float **device_k_ptr, const int B, const int M, const int C, const int H, const int W, const int K)
@@ -134,4 +134,3 @@ __host__ void GPUInterface2::conv_forward_gpu_epilog(float *host_y, float *devic
     cudaFree(device_y);
     cudaFree(device_k);
 }
-
