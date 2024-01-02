@@ -7,6 +7,7 @@
 
 __global__ void conv_forward_kernel(float *y, const float *x, const float *k, const int B, const int M, const int C, const int H, const int W, const int K)
 {
+	// Calculate output dimensions
     const int H_out = H - K + 1;
     const int W_out = W - K + 1;
 
@@ -18,17 +19,20 @@ __global__ void conv_forward_kernel(float *y, const float *x, const float *k, co
 #define k4d(i3, i2, i1, i0) k[(i3) * (C * K * K) + (i2) * (K * K) + (i1) * (K) + i0]
 
 
-
+	// Calculate grid dimensions for parallelization
     int H_grid = ceil(1.0*H_out / TILE_WIDTH);
     int W_grid = ceil(1.0*W_out / TILE_WIDTH); 
     
+	// Extract thread indices
     int b = blockIdx.x;                 // batch number
-    int m = blockIdx.y;                 // output feature
-    int h = (blockIdx.z / W_grid) * TILE_WIDTH + threadIdx.y; // row of the image matrix
-    int w = (blockIdx.z % W_grid) * TILE_WIDTH + threadIdx.x; // col of the image matrix
+    int m = blockIdx.y;                 // output feature map
+    int h = (blockIdx.z / W_grid) * TILE_WIDTH + threadIdx.y; // row of image matrix
+    int w = (blockIdx.z % W_grid) * TILE_WIDTH + threadIdx.x; // col of image matrix
     
+	// Param for convolution result
     float accum = 0.0f;
 
+	// Perform convolution by summing over input features and applying the filter
     if (h < H_out && w < W_out) 
     {
         for(int c=0; c<C; c++)             // sum over all input features
@@ -37,9 +41,11 @@ __global__ void conv_forward_kernel(float *y, const float *x, const float *k, co
                 for(int q=0; q<K; q++)
                     accum += x4d(b, c, h+p, w+q) * k4d(m, c, p, q); // 4 dimensions macro resolve thread index
         }
+		// Store the result in the output array
         y4d(b,m,h,w) = accum;
-    } // endif (h < H_out && w < W_out)
+    }
 
+	// Undefine macros to avoid potential conflicts
     #undef y4d
     #undef x4d
     #undef k4d
@@ -49,26 +55,26 @@ __global__ void conv_forward_kernel(float *y, const float *x, const float *k, co
 	
 __host__ void GPUInterface::conv_forward_gpu_prolog(const float *host_y, const float *host_x, const float *host_k, float **device_y_ptr, float **device_x_ptr, float **device_k_ptr, const int B, const int M, const int C, const int H, const int W, const int K)
 {
-    // Allocate memory and copy over the relevant data structures to the GPU
+    // Allocate memory and copy data to GPU(device)
 
     // We pass double pointers for you to initialize the relevant device pointers,
-    //  which are passed to the other two functions.
+    // which are passed to the other two functions.
 
     const int H_out = H - K + 1;
     const int W_out = W - K + 1;
 
-    int inputSize  = B * C * H * W * sizeof(float);  // input features map is C
-    int outputSize = B * M * H_out * W_out * sizeof(float); // output feature map is M
-    int maskSize = M * C * K * K * sizeof(float); // C * M filter Maps of size K*K
+    int inputSize  = B * C * H * W * sizeof(float);  // input features map C
+    int outputSize = B * M * H_out * W_out * sizeof(float); // output feature map M
+    int filterSize = M * C * K * K * sizeof(float); // C * M filter Maps of size K*K
 
     cudaMalloc((void **) device_x_ptr, inputSize);
     cudaMalloc((void **) device_y_ptr, outputSize);
-    cudaMalloc((void **) device_k_ptr, maskSize);
+    cudaMalloc((void **) device_k_ptr, filterSize);
 
-    // Copy Inout data to device
+    // Copy input data to device
     cudaMemcpy(*device_x_ptr, host_x, inputSize, cudaMemcpyHostToDevice);
-    // Copy Mask data to device
-    cudaMemcpy(*device_k_ptr, host_k, maskSize, cudaMemcpyHostToDevice);
+    // Copy filter size to device
+    cudaMemcpy(*device_k_ptr, host_k, filterSize, cudaMemcpyHostToDevice);
 
 }
 
@@ -87,18 +93,18 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
     // Block dimensions = #of threads in the block
     dim3 numThreadsPerBlock(TILE_WIDTH, TILE_WIDTH, 1);
 
-    // Grid Dimension = #of Blocks: Batch Size * Num_Output_Features *
+    // Grid Dimension = #of Blocks: Batch Size(B) * Number of Output Features(M) * Calculated gridsize(Z)
     dim3 numBlocksInGrid(B, M, Z);
 
 
-    //launch the kernel
+    // launch the kernel
     conv_forward_kernel<<<numBlocksInGrid, numThreadsPerBlock>>>(device_y, device_x, device_k, B, M, C, H, W, K);
 }
 
 
 __host__ void GPUInterface::conv_forward_gpu_epilog(float *host_y, float *device_y, float *device_x, float *device_k, const int B, const int M, const int C, const int H, const int W, const int K)
 {
-    // Copy the output back to host
+    // Copy the output from device back to host
     
     const int H_out = H - K + 1;
     const int W_out = W - K + 1;
