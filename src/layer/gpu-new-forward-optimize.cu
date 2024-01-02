@@ -5,7 +5,7 @@
 #define TILE_WIDTH 16
 #define UNROLL_FACTOR 8  // You can adjust the unroll factor based on performance testing
 
-__global__ void conv_forward_kernel_op(float *y, const float *x, const float *k, const int B, const int M, const int C, const int H, const int W, const int K)
+__global__ void conv_forward_kernel_op(float *__restrict__ y, const float *__restrict__ x, const float *__restrict__ k, const int B, const int M, const int C, const int H, const int W, const int K)
 {
     const int H_out = H - K + 1;
     const int W_out = W - K + 1;
@@ -16,7 +16,6 @@ __global__ void conv_forward_kernel_op(float *y, const float *x, const float *k,
 
     int H_grid = ceil(1.0 * H_out / TILE_WIDTH);
     int W_grid = ceil(1.0 * W_out / TILE_WIDTH);
-
 
     int b = blockIdx.x;           // batch number
     int m = blockIdx.y;           // output feature
@@ -29,16 +28,23 @@ __global__ void conv_forward_kernel_op(float *y, const float *x, const float *k,
     int h = h_start + threadIdx.y; // row of the image matrix within the tile
     int w = w_start + threadIdx.x; // col of the image matrix within the tile
 
-    __shared__ float shared_x[TILE_WIDTH][TILE_WIDTH];
     __shared__ float shared_k[TILE_WIDTH][TILE_WIDTH];
 
     float accum[UNROLL_FACTOR] = {0.0f};
 
-    for (int c = 0; c < C; c++)
+    for (int c_start = 0; c_start < C; c_start += TILE_WIDTH)
     {
-        // Load tile from global memory to shared memory
-        shared_x[threadIdx.y][threadIdx.x] = x4d(b, c, h, w);
-        shared_k[threadIdx.y][threadIdx.x] = k4d(m, c, h - h_start, w - w_start);
+        // Load tile from global memory to shared memory for input channels
+        for (int p = 0; p < TILE_WIDTH; ++p)
+        {
+            for (int q = 0; q < TILE_WIDTH; ++q)
+            {
+                int c = c_start + q;
+                int x_index = b * (C * H * W) + c * (H * W) + (h - h_start) * W + (w - w_start);
+                int k_index = m * (C * K * K) + c * (K * K) + (h - h_start) * K + (w - w_start);
+                shared_k[p][q] = x[x_index] * k[k_index];
+            }
+        }
 
         __syncthreads();
 
@@ -49,7 +55,7 @@ __global__ void conv_forward_kernel_op(float *y, const float *x, const float *k,
 #pragma unroll
             for (int q = 0; q < UNROLL_FACTOR; ++q)
             {
-                accum[q] += shared_x[threadIdx.y][p + q] * shared_k[p + q][threadIdx.x];
+                accum[q] += shared_k[p + q][threadIdx.x];
             }
         }
 
@@ -61,15 +67,16 @@ __global__ void conv_forward_kernel_op(float *y, const float *x, const float *k,
 #pragma unroll
         for (int q = 0; q < UNROLL_FACTOR; ++q)
         {
-            y4d(b, m, h, w) += accum[q];
+          atomicAdd(&y4d(b, m, h, w), accum[q]);
         }
     }
+
     #undef y4d
     #undef x4d
     #undef k4d
 }
 	
-__host__ void GPUInterface2::conv_forward_gpu_prolog(const float *host_y, const float *host_x, const float *host_k, float **device_y_ptr, float **device_x_ptr, float **device_k_ptr, const int B, const int M, const int C, const int H, const int W, const int K)
+__host__ void GPUInterface2::conv_forward_gpu_prolog(const float *__restrict__ host_y, const float *__restrict__ host_x, const float *__restrict__ host_k, float **device_y_ptr, float **device_x_ptr, float **device_k_ptr, const int B, const int M, const int C, const int H, const int W, const int K)
 {
     // Allocate memory and copy over the relevant data structures to the GPU
 
@@ -95,7 +102,7 @@ __host__ void GPUInterface2::conv_forward_gpu_prolog(const float *host_y, const 
 }
 
 
-__host__ void GPUInterface2::conv_forward_gpu(float *device_y, const float *device_x, const float *device_k, const int B, const int M, const int C, const int H, const int W, const int K)
+__host__ void GPUInterface2::conv_forward_gpu(float *__restrict__ device_y, const float *__restrict__ device_x, const float *__restrict__ device_k, const int B, const int M, const int C, const int H, const int W, const int K)
 {
     // Set the kernel dimensions and call the kernel
 
@@ -118,7 +125,7 @@ __host__ void GPUInterface2::conv_forward_gpu(float *device_y, const float *devi
 }
 
 
-__host__ void GPUInterface2::conv_forward_gpu_epilog(float *host_y, float *device_y, float *device_x, float *device_k, const int B, const int M, const int C, const int H, const int W, const int K)
+__host__ void GPUInterface2::conv_forward_gpu_epilog(float *__restrict__ host_y, float *__restrict__ device_y, float *__restrict__ device_x, float *__restrict__ device_k, const int B, const int M, const int C, const int H, const int W, const int K)
 {
     // Copy the output back to host
     
