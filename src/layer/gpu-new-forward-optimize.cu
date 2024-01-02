@@ -3,7 +3,7 @@
 #include "gpu-new-forward.h"
 
 #define TILE_WIDTH 16
-#define UNROLL_FACTOR 4  // You can adjust the unroll factor based on performance testing
+#define UNROLL_FACTOR 8  // You can adjust the unroll factor based on performance testing
 
 __global__ void conv_forward_kernel_op(float *y, const float *x, const float *k, const int B, const int M, const int C, const int H, const int W, const int K)
 {
