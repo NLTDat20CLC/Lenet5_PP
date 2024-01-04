@@ -3,7 +3,7 @@
 #include "gpu-new-forward.h"
 
 #define TILE_WIDTH 12 // You can adjust the tile width based on performance testing
-#define UNROLL_FACTOR 8  // You can adjust the unroll factor based on performance testing
+#define UNROLL_FACTOR 4 // You can adjust the unroll factor based on performance testing
 
 //fused the memory accesses for the input and kernel matrices
 __global__ void conv_forward_kernel_op(float *__restrict__ y, const float *__restrict__ x, const float *__restrict__ k, const int B, const int M, const int C, const int H, const int W, const int K)
